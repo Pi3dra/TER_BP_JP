@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Plot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Real-Time Data Plot</h1>
+    <canvas id="realtimeChart" width="800" height="400"></canvas>
+
+    <script>
+        const ctx = document.getElementById('realtimeChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps or indices
+                datasets: [{
+                    label: 'Real-Time Data',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time/Index'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Connect to the Flask-SocketIO server
+        const socket = io();
+
+        // Listen for 'update_plot' events and update the chart
+        socket.on('update_plot', (message) => {
+            console.log("Received data update:", message);  // Debugging log
+            const data = message.data;
+            chart.data.labels = data.map((_, index) => index); // Use indices for the X-axis
+            chart.data.datasets[0].data = data;
+            chart.update();
+        });
+    </script>
+</body>
+</html>
+
