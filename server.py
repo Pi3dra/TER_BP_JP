@@ -3,34 +3,44 @@ from flask_socketio import SocketIO
 import threading
 
 app = Flask(__name__)
-socketio = SocketIO(app)  # Enable WebSocket communication
 
-# Data storage for the plot
+#Activation du serveur SocketIO
+socketio = SocketIO(app)
+
+#Données 
 data = []
 lock = threading.Lock()
 
+#Graphique
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/send_data', methods=['POST'])
 def receive_data():
+    '''
+    Cette fonction prend en charge la reception des données et la mise a jour du graphique
+    Elle est appellée apres la reception des donnees au chemin /send_data a travers la methode
+    HTTP POST, elle ajoute les donnees reçues puis emet un signal 'update_plot' qui est ensuite
+    reçu par le frontend html qui met a jour le graphique
+    '''
     global data
     try:
         value = request.get_json().get('value', None)
         if value is not None:
             with lock:
                 data.append(value)
-            print(f"Received value: {value}")  # Debugging log
+            print(f"Donnée reçue: {value}")  # Debug
             socketio.emit('update_plot', {'data': data})
             return jsonify({'status': 'success'})
         else:
-            print("Invalid data received")  # Debugging log
-            return jsonify({'status': 'error', 'message': 'Invalid data'}), 400
+            print("Donnée Invalide")  # Debug
+            return jsonify({'status': 'error', 'message': 'Donnée Invalide'}), 400
+
     except Exception as e:
-        print(f"Error: {e}")  # Debugging log
+        print(f"Error: {e}")  
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000) #, debug = true)
 

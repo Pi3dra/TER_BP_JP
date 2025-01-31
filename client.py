@@ -2,31 +2,31 @@ import requests
 import random
 import time
 
-# Set the server IP address and port
-server_ip = "http://192.168.248.26:5000/send_data"  # Replace <PC_IP_ADDRESS> with your PC's IP address
+# IMPORTANT: CHANGER L'IP ET LE PORT !
+server_ip = "http://192.168.248.26:5000/send_data"  
 
-# Function to send random integers to the server
 def send_data():
     while True:
-        # Generate a random integer between 0 and 15
-        random_integer = random.randint(0, 15)
+        randint = random.randint(0, 15)
+        donnees = {"value": randint}
 
-        # Create the data payload
-        data_to_send = {"value": random_integer}
-
-        # Send the data to the server
+        #Envoie les données au serveur 
         try:
-            response = requests.post(server_ip, json=data_to_send)
-            if response.status_code == 200:
-                print("Sent:", random_integer)
+            #techniquement ce n'est pas necessaire d'attendre une reponse du serveur quand on envoie a travers POST 
+            #ceci, mais c'est pratique pour debug
+            reponse = requests.post(server_ip, json = donnees)
+            if reponse.status_code == 200:
+                print("Envoyée:", randint)
             else:
-                print("Failed to send data. Status code:", response.status_code)
-        except Exception as e:
-            print(f"Error sending data: {e}")
+                print("Erreur de transmission:. Status code:", reponse.status_code)
 
-        # Wait for 1 second before sending the next value
+        except Exception as e:
+            print(f"Erreur de transmission: {e}")
+
         time.sleep(1)
 
+#Cela empeche de executer send_data immediatement si le script est importé ailleurs
+#Cela sera utile quand on voudra envoyer et executers des instructions en fonctions des instructions du Q-Learning
 if __name__ == "__main__":
     send_data()
 

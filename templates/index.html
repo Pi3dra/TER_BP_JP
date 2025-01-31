@@ -3,22 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Plot</title>
+    <title>Slot-Car</title>
+    //Scripts javascript pout faire un chart et se connecter a un WebSocket
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
-    <h1>Real-Time Data Plot</h1>
-    <canvas id="realtimeChart" width="800" height="400"></canvas>
+    <h1>Tension/Temps: </h1>
+    <canvas id="Tension/Temps" width="800" height="400"></canvas>
 
     <script>
+        //Definition du plot
         const ctx = document.getElementById('realtimeChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [], // Timestamps or indices
+                labels: [], 
                 datasets: [{
-                    label: 'Real-Time Data',
+                    label: 'Tension/Temps',
                     data: [],
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 2,
@@ -31,27 +33,26 @@
                     x: {
                         title: {
                             display: true,
-                            text: 'Time/Index'
+                            text: 'Temps'
                         }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Value'
+                            text: 'Tension'
                         }
                     }
                 }
             }
         });
-
-        // Connect to the Flask-SocketIO server
+        // Se connecte au socket qui a servi la page web
         const socket = io();
 
-        // Listen for 'update_plot' events and update the chart
+        //Attendre la reception d'un evenement 'update_plot'
         socket.on('update_plot', (message) => {
-            console.log("Received data update:", message);  // Debugging log
+            console.log("Received data update:", message);  // Debug
             const data = message.data;
-            chart.data.labels = data.map((_, index) => index); // Use indices for the X-axis
+            chart.data.labels = data.map((_, index) => index); 
             chart.data.datasets[0].data = data;
             chart.update();
         });
