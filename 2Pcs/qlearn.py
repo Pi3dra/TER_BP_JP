@@ -36,7 +36,7 @@ ex:
 l'agent prend une action random avec probabilité epsilon, et il prend l'action
 avec le meilleur Q-value avec une probabilité 1-epsilon
 
-l'agetn fait l'action et il reçoit un nouveau etat et une recompense R
+l'agent fait l'action et il reçoit un nouveau etat et une recompense R
 
 en utilisant la formule on met a jour Q(s,a)
 
@@ -45,7 +45,6 @@ continuer jusqu'a la convergence
 
 '''
 
-import socketio
 import time
 import numpy as np
 
@@ -53,7 +52,6 @@ SERVER_URL = "http://YOUR_PI_1_IP:5000"  # Replace with the IP of Raspberry Pi 1
 
 sio = socketio.Client()
 
-# Q-learning setup
 actions = ["DO NOTHING", "INCREASE POWER", "DECREASE POWER"]
 q_table = np.zeros((10, len(actions)))  # 10 voltage states, 3 actions
 learning_rate = 0.1

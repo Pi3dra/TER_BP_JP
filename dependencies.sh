@@ -43,7 +43,7 @@ fi
 echo "Vérification de virtualenv..."
 if ! pip3 show virtualenv &> /dev/null; then
     echo "virtualenv non trouvé. Installation de virtualenv..."
-    pip3 install virtualenv
+    sudo apt install python3-virtualenv
 else
     echo "virtualenv est déjà installé."
 fi

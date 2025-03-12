@@ -1,7 +1,7 @@
 import socketio
 import time
 
-sio.socketio.Client()
+sio = socketio.Client()
 
 @sio.event
 def connect():
@@ -15,7 +15,7 @@ def process_data(data):
     print(f"Received value: {data['value']} | latency: {latency:.4f} seconds")
     #Ici appeler une autre fonction pour controller la voiture
 
-sio.connect("http://Server_IP")
+sio.connect("http://192.168.2.2/")
 
 while True
     time.sleep(1)
