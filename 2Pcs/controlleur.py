@@ -1,21 +1,28 @@
-import socketio
-import time
 
+import socketio
+
+# Création d'un client Socket.IO
 sio = socketio.Client()
+
+# Adresse du serveur (remplace par l'IP du Raspberry Pi si nécessaire)
+server_url = "http://192.168.228.251:5000"
 
 @sio.event
 def connect():
-    print("Connected to server")
+    print("Connecté au serveur!")
 
 @sio.event
-def process_data(data):
-    received_time = time.time()
-    sent_time = data['timestamp']
-    latency = temps_reception - temps_envoie
-    print(f"Received value: {data['value']} | latency: {latency:.4f} seconds")
-    #Ici appeler une autre fonction pour controller la voiture
+def disconnect():
+    print("Déconnecté du serveur!")
 
-sio.connect("http://192.168.2.2/")
+@sio.on('to_controller')
+def handle_message(data):
+    print(f"Données reçues: {data}")
 
-while True
-    time.sleep(1)
+try:
+    # Connexion au serveur
+    sio.connect(server_url)
+    print("En attente de données...")
+    sio.wait()
+except Exception as e:
+    print(f"Erreur de connexion: {e}")
