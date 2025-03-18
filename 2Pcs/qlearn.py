@@ -1,107 +1,151 @@
-'''
-Q-learning est une Q-table qui sauvegarde la valeur stimeé de prendre chaque action
-dans un etat s
-
-Chaque cellule Q(s,a) represente la recompensée attendue de faire l'action a dans l'etat s
-
-
-la formule est:
-
-(Equation de Bellman)
-
-    Q(s,a) = Q(s,a) + alpha*[R + gamma*(max-a'Q(s',a')) - Q(s,a)]
-
-Q(s,a) = Q-value qu'on connait
-
-R = recompense apres avoir pris l'action
-
-s' = Etat apres avoir fait l'action a
-
-max-a'Q(s',a') = le Q-value plus grand de l'etat suivant
-
-alpha = learning rate, a quel point la nouvelle info ecrasse la precedente
-
-gamma = Discount factor, a quel point on pense a long-terme
-
-
-
-L'idee est la suivante
-
-creer un tableau pour chaque paire etat-action
-
-ex:
-    etat accelerer decelerer continuer
-
-
-l'agent prend une action random avec probabilité epsilon, et il prend l'action
-avec le meilleur Q-value avec une probabilité 1-epsilon
-
-l'agent fait l'action et il reçoit un nouveau etat et une recompense R
-
-en utilisant la formule on met a jour Q(s,a)
-
-continuer jusqu'a la convergence
-
-
-'''
-
 import time
 import numpy as np
+import socketio
+import requests
 
-SERVER_URL = "http://YOUR_PI_1_IP:5000"  # Replace with the IP of Raspberry Pi 1
+# URL de votre serveur Flask + Socket.IO (remplacez par l'IP de votre serveur).
+SERVER_URL = "http://192.168.XX.XX:5000"
 
 sio = socketio.Client()
 
-actions = ["DO NOTHING", "INCREASE POWER", "DECREASE POWER"]
-q_table = np.zeros((10, len(actions)))  # 10 voltage states, 3 actions
-learning_rate = 0.1
-discount_factor = 0.9
-epsilon = 0.2  # Exploration rate
+# Liste des actions possibles pour l'agent Q-learning.
+actions = ["DO_NOTHING", "INCREASE_POWER", "DECREASE_POWER"]
+
+# Définition du nombre d'états discrets (par exemple 15, pour 0 à 14 V).
+num_states = 15
+
+# Initialisation de la Q-table : q_table[état][action].
+q_table = np.zeros((num_states, len(actions)))
+
+# Hyperparamètres Q-learning.
+learning_rate = 0.1       # alpha
+discount_factor = 0.9     # gamma
+epsilon = 0.2            # taux d'exploration
+
+# Plages de vitesse et incrément.
+max_speed = 95
+min_speed = 0
+speed_step = 5
+current_speed = 0  # Valeur initiale du duty cycle.
 
 def get_state(voltage):
-    """Convert voltage into a discrete state (0-9)."""
-    return min(int(voltage * 2), 9)  # Example: Scale 0-5V to 0-9 states
+    """
+    Convertit la tension en un état discret entre 0 et num_states - 1.
+    Ici, on borne à 14 pour signaler les tensions >= 14 V.
+    Adaptez selon votre plage de tension réelle.
+    """
+    scaled = int(voltage)
+    return min(scaled, num_states - 1)
 
 def choose_action(state):
-    """Epsilon-greedy action selection."""
+    """
+    Sélection de l'action selon la stratégie epsilon-greedy.
+    """
     if np.random.rand() < epsilon:
-        return np.random.choice(len(actions))  # Explore
-    return np.argmax(q_table[state])  # Exploit
+        # Exploration : on choisit une action aléatoire.
+        return np.random.choice(len(actions))
+    else:
+        # Exploitation : on choisit l'action de Q(s,a) la plus élevée.
+        return np.argmax(q_table[state])
 
 def update_q_table(state, action, reward, next_state):
-    """Q-learning update rule."""
+    """
+    Met à jour la Q-table selon la formule du Q-learning :
+    Q(s,a) ← Q(s,a) + α [ R + γ * max_a' Q(s', a') − Q(s,a) ]
+    """
     best_next_action = np.argmax(q_table[next_state])
-    q_table[state, action] += learning_rate * (reward + discount_factor * q_table[next_state, best_next_action] - q_table[state, action])
+    q_table[state, action] += learning_rate * (
+        reward + discount_factor * q_table[next_state, best_next_action]
+        - q_table[state, action]
+    )
+
+def compute_reward(voltage):
+    """
+    Fonction de récompense d'exemple :
+      - Si la tension >= 14.5, on considère que la voiture est sortie => pénalité forte.
+      - Sinon, on récompense la tension la plus élevée possible (< 14.5).
+    """
+    if voltage >= 14.5:
+        # Grosse pénalité si sortie de piste.
+        return -15
+    else:
+        # La récompense augmente à mesure que la tension se rapproche de 14.5 (dans la limite).
+        return 10.0 * (voltage / 14.5)
+
+def apply_action(action_idx):
+    """
+    En fonction de l'action choisie, modifie la variable current_speed
+    puis envoie la nouvelle consigne de vitesse au contrôleur (via Socket.IO).
+    """
+    global current_speed
+    action_name = actions[action_idx]
+
+    if action_name == "INCREASE_POWER":
+        current_speed += speed_step
+    elif action_name == "DECREASE_POWER":
+        current_speed -= speed_step
+    elif action_name == "DO_NOTHING":
+        pass
+
+    # On borne la vitesse entre [min_speed, max_speed].
+    current_speed = max(min_speed, min(max_speed, current_speed))
+
+    # Émission d'un événement 'set_speed' : à implémenter côté serveur ou "contrôleur".
+    sio.emit('set_speed', {'speed': current_speed})
+
+    print(f"[apply_action] Action: {action_name}, Speed => {current_speed}%")
+
+# ------------------ Gestion des événements Socket.IO --------------------
 
 @sio.event
 def connect():
-    print("Connected to server")
+    print("[Q-Learning] Connecté au serveur")
+
+@sio.event
+def disconnect():
+    print("[Q-Learning] Déconnecté du serveur")
 
 @sio.on('update_plot')
-def on_message(data):
-    latest_data = data['data'][-1]
-    voltage = latest_data['value']
-    sent_timestamp = latest_data['timestamp']
-    
-    received_timestamp = time.time()
-    delay = received_timestamp - sent_timestamp
-    print(f"Received voltage: {voltage}, Delay: {delay:.6f} sec")
+def on_update_plot(data):
+    """
+    Événement émis par le serveur. 'data' doit contenir 'value' (tension).
+    """
+    try:
+        voltage = data['value']
+        print(f"[Q-Learning] Tension reçue: {voltage:.3f} V")
 
-    state = get_state(voltage)
-    action = choose_action(state)
+        # Déterminer l'état discret.
+        state = get_state(voltage)
 
-    # Define rewards (example: want voltage between 2.5V-3.5V)
-    if 2.5 <= voltage <= 3.5:
-        reward = 1  # Ideal range
-    else:
-        reward = -1  # Out of range
+        # Choisir une action (epsilon-greedy).
+        action_idx = choose_action(state)
 
-    next_state = get_state(voltage)  # Assuming environment transition
-    update_q_table(state, action, reward, next_state)
+        # Appliquer cette action (mise à jour de la vitesse PWM).
+        apply_action(action_idx)
 
-    print(f"Action taken: {actions[action]}, New Q-table: \n{q_table}")
+        # Calculer la récompense.
+        reward = compute_reward(voltage)
 
-#Faut s'adapter pour faire 
-sio.connect(SERVER_URL)
-sio.wait()
+        # Dans un enchaînement réaliste, on attendrait la prochaine mesure pour obtenir next_state.
+        # Ici, on simplifie en considérant que l'état ne change pas immédiatement.
+        next_state = state
 
+        # Mettre à jour la Q-table.
+        update_q_table(state, action_idx, reward, next_state)
+
+        print(f"[Q-Learning] Action={actions[action_idx]}, Reward={reward:.2f}")
+        print("[Q-Learning] Q-table:\n", q_table)
+    except Exception as e:
+        print(f"Erreur dans on_update_plot: {e}")
+
+# ------------------------- Lancement -----------------------------------
+
+if __name__ == "__main__":
+    try:
+        sio.connect(SERVER_URL)
+        print("[Q-Learning] En attente des données...")
+        sio.wait()
+    except KeyboardInterrupt:
+        print("[Q-Learning] Interrompu par l'utilisateur.")
+    except Exception as e:
+        print(f"[Q-Learning] Erreur de connexion : {e}")
