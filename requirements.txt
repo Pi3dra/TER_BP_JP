@@ -1,0 +1,8 @@
+numpy>=1.26.4 
+python-socketio>=5.11.2 
+RPi.GPIO>=0.7.1 
+requests>=2.31.0 
+Adafruit-Blinka>=8.49.0 
+adafruit-circuitpython-ads1x15>=2.2.22 
+flask>=3.0.3 
+flask-socketio>=5.3.6

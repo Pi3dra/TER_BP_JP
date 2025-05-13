@@ -10,5 +10,6 @@ ads.gain = 2/3
 
 while True:
     chan = AnalogIn(ads, ADS.P0)  
-    print(f"Voltage: {round(5*chan.voltage,3)} V")
+    print(f"Raw ADC value: {chan.value}")
+    print(f"Voltage: {chan.voltage} V")
     time.sleep(1)

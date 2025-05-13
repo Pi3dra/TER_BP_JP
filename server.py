@@ -24,7 +24,7 @@ def receive_data():
             #print(f"Received value: {value}")  
             #Envoyer au Raspberry pi 
             socketio.emit('update_plot',  {'value': value})
-            #socketio.emit('update_plot', {'value':value, 'timestamp': timestamp})
+            socketio.emit('to_controller', {'value':value, 'timestamp': timestamp})
             return jsonify({'status': 'success'})
         else:
             #print("Invalid data received")  

@@ -8,6 +8,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 
 server_ip = "http://127.0.0.1:5000/send_data"
 
+
 #Config du ADS1115
 i2c = busio.I2C(board.SCL, board.SDA)
 ads = ADS.ADS1115(i2c)
@@ -27,7 +28,7 @@ def send_data():
             print("Sent:" ,data_to_send)
         except Exception as e:
             print(f"Error sending data: {e}")
-        time.sleep(1)
+        time.sleep(0.05)
 
 if __name__ == "__main__":
     send_data()

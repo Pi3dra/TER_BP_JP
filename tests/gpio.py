@@ -6,6 +6,8 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(motor_pin,GPIO.OUT)
 pwm = GPIO.PWM(motor_pin, 800)
 pwm.start(0)
+
+
 # 6 demarre lentement, puis a 26 deraille
 speed = 0
 increment = 5
